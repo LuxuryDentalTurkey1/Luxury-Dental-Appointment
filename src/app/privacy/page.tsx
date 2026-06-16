@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy · Luxury Dental Turkey",
+  title: "Privacy Policy",
 };
 
 const sections: { h: string; body: string[] }[] = [

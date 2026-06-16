@@ -2,6 +2,8 @@ import Link from "next/link";
 import { getLocale } from "@/lib/locale";
 import { getDict } from "@/lib/i18n";
 
+export const metadata = { title: "How It Works" };
+
 export default async function HowItWorksPage() {
   const t = getDict(await getLocale()).how;
   return (

@@ -3,6 +3,8 @@ import { getSettings, getBlockedDates } from "@/lib/settings";
 import { getLocale } from "@/lib/locale";
 import { getDict } from "@/lib/i18n";
 
+export const metadata = { title: "Book a Consultation" };
+
 export default async function BookPage() {
   const [settings, blockedDates, locale] = await Promise.all([getSettings(), getBlockedDates(), getLocale()]);
   const t = getDict(locale).book;

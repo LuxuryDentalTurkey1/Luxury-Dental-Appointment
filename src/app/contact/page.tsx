@@ -1,6 +1,8 @@
 import { getLocale } from "@/lib/locale";
 import { getDict } from "@/lib/i18n";
 
+export const metadata = { title: "Contact" };
+
 export default async function ContactPage() {
   const t = getDict(await getLocale()).contact;
 
