@@ -5,9 +5,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import type { BookingRow } from "@/lib/types";
 
-function todayISO() {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London" }).format(new Date());
-}
+const SEEN_KEY = "ldt_notif_seen";
+
 function bookedAt(iso: string) {
   return new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" });
 }
@@ -27,15 +26,32 @@ export default function NotificationsBell() {
         .limit(10);
       const rows = (data ?? []) as BookingRow[];
       setItems(rows);
-      const t = todayISO();
-      setNewCount(rows.filter((r) => (r.created_at || "").slice(0, 10) === t).length);
+      let seen = "";
+      try {
+        seen = localStorage.getItem(SEEN_KEY) || "";
+      } catch {}
+      setNewCount(rows.filter((r) => (r.created_at || "") > seen).length);
     })();
   }, []);
+
+  function toggle() {
+    setOpen((o) => {
+      const next = !o;
+      // Opening the bell marks the newest booking as seen, clearing the badge.
+      if (next && items.length) {
+        try {
+          localStorage.setItem(SEEN_KEY, items[0].created_at || new Date().toISOString());
+        } catch {}
+        setNewCount(0);
+      }
+      return next;
+    });
+  }
 
   return (
     <div className="relative">
       <button
-        onClick={() => setOpen((o) => !o)}
+        onClick={toggle}
         aria-label="Notifications"
         className="relative flex h-10 w-10 items-center justify-center rounded-lg border border-black/10 text-zinc-700 hover:bg-black/[0.03]"
       >
