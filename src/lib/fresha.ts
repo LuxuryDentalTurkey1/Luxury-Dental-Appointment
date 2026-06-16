@@ -1,10 +1,10 @@
 // Server-only: pulls the clinic's Fresha appointments (public iCal feed) and
 // mirrors the FUTURE ones into `time_blocks`, so Fresha bookings show as
-// occupied in our booking flow. Runs under the caller's Supabase session
-// (the logged-in admin), so RLS allows the writes.
+// occupied in our booking flow. Takes a Supabase client so it can run either
+// under the admin's session (the manual button) or a service-role client (cron).
 
 import { DateTime } from "luxon";
-import { createClient } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 const FRESHA_NOTE = "Fresha booking";
 
@@ -45,7 +45,7 @@ function toUk(v: string): DateTime {
   }).setZone("Europe/London");
 }
 
-export async function syncFreshaBlocks() {
+export async function syncFreshaBlocks(supabase: SupabaseClient) {
   const url = process.env.FRESHA_ICAL_URL;
   if (!url) return { ok: false as const, error: "Fresha calendar link is not configured." };
 
@@ -69,7 +69,6 @@ export async function syncFreshaBlocks() {
       note: FRESHA_NOTE,
     }));
 
-  const supabase = await createClient();
   // Replace the previous Fresha mirror (handles cancellations + moves cleanly).
   const del = await supabase.from("time_blocks").delete().eq("note", FRESHA_NOTE);
   if (del.error) return { ok: false as const, error: del.error.message };

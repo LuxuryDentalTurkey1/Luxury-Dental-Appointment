@@ -278,7 +278,7 @@ export async function syncFresha() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false as const, error: "Not authenticated" };
-  return syncFreshaBlocks();
+  return syncFreshaBlocks(supabase);
 }
 
 export async function resizeBooking(id: string, duration_minutes: number) {
