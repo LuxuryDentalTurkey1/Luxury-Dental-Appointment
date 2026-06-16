@@ -1,26 +1,47 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter);
+  --font-heading: var(--font-fustat);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+@theme {
+  --color-ink: #111111;
+  --color-gold: #c5a253;
+  --color-gold-light: #e7ce8c;
+  --color-gold-deep: #a47e2e;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: #ffffff;
+  color: #111111;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+}
+
+/* react-phone-number-input — match the brand input style */
+.PhoneInputInput {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.875rem;
+  color: #111111;
+  padding: 0.4rem 0;
+}
+.PhoneInputInput::placeholder {
+  color: #a1a1aa;
+}
+.PhoneInputCountry {
+  margin-right: 0.6rem;
+}
+.PhoneInputCountrySelect {
+  font-size: 0.875rem;
+}
+.PhoneInputCountryIcon {
+  box-shadow: none;
 }
