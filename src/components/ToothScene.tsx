@@ -1,20 +1,16 @@
 "use client";
 
 import * as THREE from "three";
-import { useMemo, Suspense } from "react";
-import { Canvas } from "@react-three/fiber";
-import {
-  OrbitControls,
-  Stage,
-  Environment,
-  Lightformer,
-  useGLTF,
-} from "@react-three/drei";
+import { useMemo, useRef, Suspense } from "react";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { Center, Environment, Lightformer, useGLTF } from "@react-three/drei";
 
 function Tooth() {
   const { scene } = useGLTF("/Tooth.glb");
+  const ref = useRef<THREE.Group>(null);
 
-  useMemo(() => {
+  // Apply the clean white enamel material and work out a scale that fits the view.
+  const fitScale = useMemo(() => {
     scene.traverse((o: THREE.Object3D) => {
       const mesh = o as THREE.Mesh;
       if (mesh.isMesh) {
@@ -30,9 +26,24 @@ function Tooth() {
         mesh.receiveShadow = false;
       }
     });
+    const size = new THREE.Box3().setFromObject(scene).getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z) || 1;
+    return 3.4 / maxDim;
   }, [scene]);
 
-  return <primitive object={scene} />;
+  // Spin the model on its OWN vertical axis (centred), independent of the camera.
+  // This stays identical in dev and production, unlike camera auto-rotate.
+  useFrame((_, delta) => {
+    if (ref.current) ref.current.rotation.y += delta * 0.5;
+  });
+
+  return (
+    <group ref={ref}>
+      <Center>
+        <primitive object={scene} scale={fitScale} />
+      </Center>
+    </group>
+  );
 }
 
 useGLTF.preload("/Tooth.glb");
@@ -48,17 +59,12 @@ export default function ToothScene() {
       {/* Light source fixed on the LEFT — matches the top-left gold gradient.
           Lights are world-fixed, so the left face stays lit as the tooth rotates. */}
       <ambientLight intensity={0.5} />
-      {/* Main key light from upper-left-front */}
       <directionalLight position={[-6, 5, 4]} intensity={2.4} color="#ffffff" />
-      {/* Gentle fill from the right so the shadow side isn't pure black */}
       <directionalLight position={[5, 1, 2]} intensity={0.35} color="#ffffff" />
-      {/* Subtle warm gold edge glint, also from the left */}
       <directionalLight position={[-4, 2, -3]} intensity={0.8} color="#e7ce8c" />
 
       <Suspense fallback={null}>
-        <Stage environment={null} intensity={0} shadows={false} adjustCamera={1.1}>
-          <Tooth />
-        </Stage>
+        <Tooth />
 
         {/* Reflections weighted to the LEFT (brightest panel on the left) */}
         <Environment resolution={256}>
@@ -68,14 +74,6 @@ export default function ToothScene() {
           <Lightformer form="rect" position={[4, 0, 2]} scale={[2, 4, 1]} color="#ffffff" intensity={0.35} />
         </Environment>
       </Suspense>
-
-      <OrbitControls
-        makeDefault
-        enableZoom={false}
-        enablePan={false}
-        autoRotate
-        autoRotateSpeed={1.1}
-      />
     </Canvas>
   );
 }
