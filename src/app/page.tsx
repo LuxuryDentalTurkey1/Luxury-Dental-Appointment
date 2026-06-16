@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Tooth3D from "@/components/Tooth3D";
+import HeroVisual from "@/components/HeroVisual";
 import { getLocale } from "@/lib/locale";
 import { getDict } from "@/lib/i18n";
 
@@ -91,8 +91,8 @@ export default async function Home() {
         </div>
 
         {/* Right: 3D tooth */}
-        <div className="relative h-[360px] w-full sm:h-[480px] lg:h-[620px] lg:w-1/2">
-          <Tooth3D />
+        <div className="relative h-[300px] w-full sm:h-[420px] lg:h-[620px] lg:w-1/2">
+          <HeroVisual />
         </div>
       </section>
     </main>
