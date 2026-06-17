@@ -12,11 +12,26 @@ export default function ChatWidget() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState({ name: "", email: "", text: "" });
+  const [hp, setHp] = useState(""); // honeypot — humans never fill this
+  const [openedAt, setOpenedAt] = useState(0);
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
-    setSending(true);
     setError(null);
+    // Bot traps: a filled honeypot, or an instant submit (< 3s), is not a human.
+    if (hp.trim() !== "" || (openedAt && Date.now() - openedAt < 3000)) {
+      setSent(true); // silently drop — looks successful to the bot
+      return;
+    }
+    // Light cooldown so the form can't be hammered.
+    try {
+      const last = Number(localStorage.getItem("ldt_msg_last") || "0");
+      if (Date.now() - last < 30000) {
+        setError("Please wait a moment before sending another message.");
+        return;
+      }
+    } catch {}
+    setSending(true);
     const supabase = createClient();
     const { error } = await supabase.from("messages").insert({
       name: msg.name.trim(),
@@ -28,6 +43,9 @@ export default function ChatWidget() {
       setError("Sorry, your message couldn't be sent. Please try again.");
       return;
     }
+    try {
+      localStorage.setItem("ldt_msg_last", String(Date.now()));
+    } catch {}
     setSent(true);
   }
 
@@ -68,6 +86,17 @@ export default function ChatWidget() {
                 <input required placeholder="Your name" value={msg.name} onChange={(e) => setMsg({ ...msg, name: e.target.value })} className={inputCls} />
                 <input required type="email" placeholder="Your email" value={msg.email} onChange={(e) => setMsg({ ...msg, email: e.target.value })} className={inputCls} />
                 <textarea required rows={3} placeholder="Your message" value={msg.text} onChange={(e) => setMsg({ ...msg, text: e.target.value })} className={`${inputCls} resize-none`} />
+                {/* Honeypot: off-screen, hidden from people; bots that fill it are dropped. */}
+                <input
+                  type="text"
+                  name="website"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  aria-hidden="true"
+                  value={hp}
+                  onChange={(e) => setHp(e.target.value)}
+                  className="pointer-events-none absolute left-[-9999px] h-0 w-0 opacity-0"
+                />
                 {error && <p className="text-xs text-red-500">{error}</p>}
                 <button type="submit" disabled={sending} className="w-full rounded-xl bg-ink py-2.5 text-sm font-semibold text-white transition-transform hover:scale-[1.01] disabled:opacity-50">
                   {sending ? "Sending…" : "Send message"}
@@ -79,7 +108,7 @@ export default function ChatWidget() {
       )}
 
       <button
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => setOpen((o) => { if (!o) setOpenedAt(Date.now()); return !o; })}
         aria-label="Chat with us"
         className="fixed bottom-5 right-5 z-[60] flex h-14 w-14 items-center justify-center rounded-full bg-ink text-white shadow-xl ring-1 ring-gold/40 transition-transform hover:scale-105"
       >
