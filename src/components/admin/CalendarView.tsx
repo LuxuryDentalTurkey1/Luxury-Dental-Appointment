@@ -17,6 +17,7 @@ import {
   refundBooking,
 } from "@/app/admin/actions";
 import ManualBookingForm from "./ManualBookingForm";
+import ConfirmHost, { confirmDialog } from "./Confirm";
 import type { BookingRow } from "@/lib/types";
 import type { AppSettings } from "@/lib/booking";
 
@@ -217,8 +218,18 @@ export default function CalendarView({ settings }: { settings: AppSettings }) {
       if (!d) return;
       if (d.mode === "move") {
         if (d.moved && d.bookingId) {
-          const notify = confirm("Send the patient an update email about this change?");
-          await rescheduleBooking(d.bookingId, d.date, minToTime(d.topMin), notify);
+          const choice = await confirmDialog({
+            title: "Move appointment",
+            message: "Reschedule this appointment to the new time? You can also email the patient about the change.",
+            actions: [
+              { label: "Reschedule & email patient", value: "email", variant: "primary" },
+              { label: "Reschedule, don't email", value: "noemail", variant: "ghost" },
+              { label: "Cancel", value: "cancel", variant: "ghost" },
+            ],
+          });
+          if (choice === "email" || choice === "noemail") {
+            await rescheduleBooking(d.bookingId, d.date, minToTime(d.topMin), choice === "email");
+          }
           await load(from, to);
         } else if (clickBookingRef.current) {
           setSelected(clickBookingRef.current);
@@ -301,10 +312,17 @@ export default function CalendarView({ settings }: { settings: AppSettings }) {
   }
 
   async function removeBlock(blk: TimeBlock) {
-    if (confirm(`Remove this block (${blk.start_time}–${blk.end_time})?`)) {
-      await removeTimeBlock(blk.id);
-      await load(from, to);
-    }
+    const r = await confirmDialog({
+      title: "Remove blocked time",
+      message: `Remove this block (${blk.start_time}–${blk.end_time})?`,
+      actions: [
+        { label: "Remove", value: "yes", variant: "danger" },
+        { label: "Keep it", value: "no", variant: "ghost" },
+      ],
+    });
+    if (r !== "yes") return;
+    await removeTimeBlock(blk.id);
+    await load(from, to);
   }
 
   let columns: Column[];
@@ -429,7 +447,7 @@ export default function CalendarView({ settings }: { settings: AppSettings }) {
                       onMouseDown={(e) => beginMove(e, b)}
                       style={{ top, height }}
                       title="Drag to reschedule · click to open"
-                      className={`absolute left-0.5 right-0.5 cursor-move overflow-hidden rounded-md border px-1.5 py-0.5 text-left text-[11px] leading-tight transition-shadow hover:shadow-md ${bookingColor(b.status, b.payment_status === "paid")} ${isNow ? "z-10 animate-pulse ring-2 ring-red-500" : ""}`}
+                      className={`absolute left-0.5 right-0.5 cursor-move overflow-hidden rounded-md border px-1.5 py-0.5 text-left text-[11px] leading-tight transition-all hover:shadow-md ${bookingColor(b.status, b.payment_status === "paid")} ${isNow ? "z-10 animate-pulse ring-2 ring-red-500" : ""} ${preview?.mode === "move" && preview.bookingId === b.id ? "opacity-30" : ""}`}
                     >
                       <div className="truncate font-semibold">{b.appointment_time_uk} {b.full_name}</div>
                       {b.treatment && <div className="truncate opacity-70">{b.treatment}</div>}
@@ -440,8 +458,8 @@ export default function CalendarView({ settings }: { settings: AppSettings }) {
 
                 {preview && preview.date === c.date && (
                   <div
-                    style={{ top: (preview.topMin - START_HOUR * 60) * PX_PER_MIN, height: Math.max((preview.botMin - preview.topMin) * PX_PER_MIN, 2) }}
-                    className="pointer-events-none absolute left-0.5 right-0.5 flex items-center justify-center rounded-md border-2 border-dashed border-ink/40 bg-ink/[0.06] text-[10px] font-medium text-ink/60"
+                    style={{ top: (preview.topMin - START_HOUR * 60) * PX_PER_MIN, height: Math.max((preview.botMin - preview.topMin) * PX_PER_MIN, 22) }}
+                    className="pointer-events-none absolute left-0.5 right-0.5 z-30 flex items-center justify-center rounded-lg border-2 border-gold bg-gold/20 text-xs font-bold text-gold-deep shadow-[0_4px_14px_rgba(197,162,83,0.35)]"
                   >
                     {minToTime(preview.topMin)}–{minToTime(preview.botMin)}
                   </div>
@@ -462,6 +480,7 @@ export default function CalendarView({ settings }: { settings: AppSettings }) {
       {selected && <DetailDrawer booking={selected} onClose={() => setSelected(null)} onChanged={() => load(from, to)} />}
       {adding && <ManualBookingForm settings={settings} defaultDate={day} onClose={() => setAdding(false)} onCreated={() => load(from, to)} />}
       {blocking && <BlockTimeDrawer defaultDate={day} onClose={() => setBlocking(false)} onCreated={() => load(from, to)} />}
+      <ConfirmHost />
     </div>
   );
 }
@@ -566,7 +585,15 @@ function DetailDrawer({
     await onChanged();
   }
   async function doDelete() {
-    if (!confirm(`Delete ${b.full_name}'s appointment? This cannot be undone.`)) return;
+    const r = await confirmDialog({
+      title: "Delete appointment",
+      message: `Delete ${b.full_name}'s appointment? This cannot be undone.`,
+      actions: [
+        { label: "Delete appointment", value: "yes", variant: "danger" },
+        { label: "Cancel", value: "no", variant: "ghost" },
+      ],
+    });
+    if (r !== "yes") return;
     setBusy(true);
     const res = await deleteBooking(b.id);
     setBusy(false);
@@ -578,7 +605,15 @@ function DetailDrawer({
     }
   }
   async function doRefund() {
-    if (!confirm(`Refund £${b.amount_paid ?? b.price_gbp} to ${b.full_name} and cancel this appointment?`)) return;
+    const r = await confirmDialog({
+      title: "Refund & cancel",
+      message: `Refund £${b.amount_paid ?? b.price_gbp} to ${b.full_name} and cancel this appointment?`,
+      actions: [
+        { label: "Refund & cancel", value: "yes", variant: "danger" },
+        { label: "Keep it", value: "no", variant: "ghost" },
+      ],
+    });
+    if (r !== "yes") return;
     setBusy(true);
     const res = await refundBooking(b.id);
     setBusy(false);
