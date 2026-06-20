@@ -36,10 +36,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Database not configured" }, { status: 500 });
     }
     try {
+      // The event already carries the full session (payment_status + our
+      // metadata), so we use it directly — no extra API call. A Stripe
+      // "send test event" has no metadata, so createBookingFromSession just
+      // returns created:false and we still ack 200.
       const session = event.data.object as Stripe.Checkout.Session;
-      // Re-fetch to be sure payment_status + metadata are fully populated.
-      const full = await stripe.checkout.sessions.retrieve(session.id);
-      await createBookingFromSession(full, supabase);
+      await createBookingFromSession(session, supabase);
     } catch (e) {
       console.error("[stripe webhook]", e);
       // 500 → Stripe retries later; createBookingFromSession is idempotent so
