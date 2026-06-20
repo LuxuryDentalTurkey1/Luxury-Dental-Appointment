@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { stripe } from "@/lib/stripe";
-import { createClient } from "@/lib/supabase/server";
-import { sendBookingNotification, sendPatientEmail, bookingRef } from "@/lib/notify";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createBookingFromSession, type CreatedBookingInfo } from "@/lib/createBooking";
+import { bookingRef } from "@/lib/notify";
 
 export default async function SuccessPage({
   searchParams,
@@ -11,65 +12,39 @@ export default async function SuccessPage({
   const { session_id } = await searchParams;
 
   let ok = false;
-  let info: { name: string; date: string; timeUk: string; type: string; amount: number; reference: string } | null = null;
+  let info: CreatedBookingInfo | null = null;
 
   if (session_id) {
     try {
       const session = await stripe.checkout.sessions.retrieve(session_id);
-      const m = session.metadata;
-      if (session.payment_status === "paid" && m) {
-        const amount = (session.amount_total || 0) / 100;
-        const booking = {
-          consultation_type: m.consultation_type,
-          appointment_date: m.appointment_date,
-          appointment_time_uk: m.appointment_time_uk,
-          duration_minutes: Number(m.duration_minutes),
-          price_gbp: Number(m.price_gbp),
-          full_name: m.full_name,
-          email: m.email,
-          phone: m.phone,
-          country: m.country,
-          treatment: m.treatment,
-          notes: m.notes || null,
-          status: "upcoming",
-          payment_status: "paid",
-          transaction_id:
-            typeof session.payment_intent === "string"
-              ? session.payment_intent
-              : String(session.payment_intent ?? session.id),
-          amount_paid: amount,
-          paid_at: new Date().toISOString(),
-        };
-
-        const supabase = await createClient();
-        const { error } = await supabase.from("bookings").insert(booking);
-        const reference = bookingRef(booking.transaction_id);
-        // Duplicate (page refresh → unique transaction_id) → don't email again.
-        if (!error) {
-          try {
-            await sendBookingNotification(booking);
-          } catch (e) {
-            console.error(e);
-          }
-          try {
-            await sendPatientEmail("confirmation", { ...booking, reference });
-          } catch (e) {
-            console.error(e);
-          }
+      if (session.payment_status === "paid") {
+        const supabase = createAdminClient();
+        if (supabase) {
+          // Idempotent: records the booking (and emails) the first time only.
+          // The Stripe webhook does the same as a safety net, so this never
+          // double-books and a payment is never lost.
+          const res = await createBookingFromSession(session, supabase);
+          info = res.info;
+          ok = !!res.info;
+        } else if (session.metadata) {
+          // Service key not configured — still confirm to the patient from the
+          // session so they don't see a scary "not completed" after paying.
+          const m = session.metadata;
+          info = {
+            name: m.full_name,
+            date: m.appointment_date,
+            timeUk: m.appointment_time_uk,
+            type:
+              m.consultation_type === "online"
+                ? "Online Video Consultation"
+                : "Face-to-Face Consultation",
+            amount: (session.amount_total || 0) / 100,
+            reference: bookingRef(
+              typeof session.payment_intent === "string" ? session.payment_intent : session.id
+            ),
+          };
+          ok = true;
         }
-
-        ok = true;
-        info = {
-          name: m.full_name,
-          date: m.appointment_date,
-          timeUk: m.appointment_time_uk,
-          type:
-            booking.consultation_type === "online"
-              ? "Online Video Consultation"
-              : "Face-to-Face Consultation",
-          amount,
-          reference,
-        };
       }
     } catch (e) {
       console.error("[success] error", e);
@@ -93,7 +68,7 @@ export default async function SuccessPage({
             Booking reference: <span className="font-semibold text-ink">{info.reference}</span>
           </p>
           <p className="mt-4 text-sm text-zinc-500">
-            Amount paid: <span className="font-semibold text-ink">£{info.amount}</span>
+            Amount paid: <span className="font-semibold text-ink">£{info.amount.toFixed(2)}</span>
           </p>
           <Link href="/" className="mt-8 inline-block rounded-xl bg-ink px-6 py-3 text-sm font-semibold text-white transition-transform hover:scale-[1.02]">
             Back to home

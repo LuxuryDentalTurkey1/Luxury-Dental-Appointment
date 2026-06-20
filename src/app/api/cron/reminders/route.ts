@@ -10,7 +10,8 @@ export const dynamic = "force-dynamic";
 // Protected by CRON_SECRET (Vercel Cron sends it as a Bearer token).
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
-  if (secret && req.headers.get("authorization") !== `Bearer ${secret}`) {
+  if (!secret) return new NextResponse("Cron secret not configured", { status: 500 });
+  if (req.headers.get("authorization") !== `Bearer ${secret}`) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
 
