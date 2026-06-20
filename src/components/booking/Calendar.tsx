@@ -8,12 +8,6 @@ const MONTHS = [
   "July", "August", "September", "October", "November", "December",
 ];
 
-function startOfDay(d: Date) {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
-}
-
 function isoOf(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
@@ -38,8 +32,12 @@ export default function Calendar({
   selected: Date | null;
   onSelect: (d: Date) => void;
 }) {
-  const today = startOfDay(new Date());
-  const [view, setView] = useState({ y: today.getFullYear(), m: today.getMonth() });
+  // UK "today" (the business timezone) as YYYY-MM-DD — identical for every
+  // visitor whatever their own timezone, so past days are disabled the same way
+  // for a UK patient and an overseas one (and matches the server, no SSR drift).
+  const todayISOuk = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London" }).format(new Date());
+  const [ty, tm] = todayISOuk.split("-").map(Number);
+  const [view, setView] = useState({ y: ty, m: tm - 1 });
 
   const firstOfMonth = new Date(view.y, view.m, 1);
   const leading = (firstOfMonth.getDay() + 6) % 7; // Monday-first
@@ -49,12 +47,11 @@ export default function Calendar({
   for (let i = 0; i < leading; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(view.y, view.m, d));
 
-  const atCurrentMonth =
-    view.y === today.getFullYear() && view.m === today.getMonth();
+  const atCurrentMonth = view.y === ty && view.m === tm - 1;
 
   function isSelectable(d: Date) {
     return (
-      d >= today &&
+      isoOf(d) >= todayISOuk &&
       availableWeekdays.includes(d.getDay()) &&
       !blockedDates.includes(isoOf(d))
     );
