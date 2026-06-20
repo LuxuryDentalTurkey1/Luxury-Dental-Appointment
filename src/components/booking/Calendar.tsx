@@ -72,7 +72,7 @@ export default function Calendar({
           onClick={() => shift(-1)}
           disabled={atCurrentMonth}
           aria-label="Previous month"
-          className="flex h-9 w-9 items-center justify-center rounded-lg border border-black/10 text-zinc-600 transition-colors hover:bg-black/[0.03] disabled:opacity-30"
+          className="flex h-11 w-11 items-center justify-center rounded-lg border border-black/10 text-zinc-600 transition-colors hover:bg-black/[0.03] disabled:opacity-30"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
         </button>
@@ -83,7 +83,7 @@ export default function Calendar({
           type="button"
           onClick={() => shift(1)}
           aria-label="Next month"
-          className="flex h-9 w-9 items-center justify-center rounded-lg border border-black/10 text-zinc-600 transition-colors hover:bg-black/[0.03]"
+          className="flex h-11 w-11 items-center justify-center rounded-lg border border-black/10 text-zinc-600 transition-colors hover:bg-black/[0.03]"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
         </button>
@@ -122,8 +122,8 @@ export default function Calendar({
       </div>
 
       <p className="mt-4 flex items-center gap-2 text-xs text-zinc-500">
-        <span className="inline-block h-3 w-3 rounded-[3px] ring-1 ring-inset ring-gold/50" />
-        Available days are highlighted.
+        <span className="inline-flex h-5 w-5 items-center justify-center rounded-lg text-[10px] font-medium text-ink ring-1 ring-inset ring-gold/50">1</span>
+        Highlighted days are available to book.
       </p>
     </div>
   );

@@ -99,7 +99,7 @@ export default function NotificationsBell() {
             <Link
               href="/admin/bookings"
               onClick={() => setOpen(false)}
-              className="block border-t border-black/5 px-4 py-3 text-center text-sm font-semibold text-gold hover:bg-gold/[0.05]"
+              className="block border-t border-black/5 px-4 py-3 text-center text-sm font-semibold text-gold-deep hover:bg-gold/[0.05]"
             >
               See all bookings
             </Link>

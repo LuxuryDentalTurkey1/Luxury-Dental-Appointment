@@ -41,7 +41,7 @@ export default function Navbar({ locale }: { locale: Locale }) {
                 <Link
                   href={l.href}
                   className={`text-sm font-medium transition-colors ${
-                    active ? "text-gold" : "text-zinc-700 hover:text-gold"
+                    active ? "text-gold-deep" : "text-zinc-700 hover:text-gold-deep"
                   }`}
                 >
                   {l.label}
@@ -88,7 +88,7 @@ export default function Navbar({ locale }: { locale: Locale }) {
               key={l.href}
               href={l.href}
               onClick={() => setOpen(false)}
-              className="block rounded-[10px] px-4 py-3 text-sm font-medium text-zinc-800 hover:bg-gold/10 hover:text-gold"
+              className="block rounded-[10px] px-4 py-3 text-sm font-medium text-zinc-800 hover:bg-gold/10 hover:text-gold-deep"
             >
               {l.label}
             </Link>

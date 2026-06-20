@@ -173,6 +173,8 @@ export default function BookingFlow({
           </li>
         ))}
       </ol>
+      {/* On mobile only the step numbers fit, so name the current step here. */}
+      <p className="-mt-5 mb-7 text-center text-sm font-semibold text-ink sm:hidden">{t.steps[step]}</p>
 
       <div className="rounded-3xl border border-black/10 bg-white/70 p-6 backdrop-blur-sm sm:p-8">
         {/* STEP 0 — type */}
@@ -190,12 +192,17 @@ export default function BookingFlow({
                     onClick={() => chooseType(c.id)}
                     className={[
                       "flex flex-col rounded-2xl border p-5 text-left transition-all",
-                      active ? "border-gold bg-gold/[0.04] ring-2 ring-gold/40" : "border-black/10 hover:border-gold/50",
+                      active ? "border-gold bg-gold/[0.06] ring-2 ring-gold/50" : "border-black/10 hover:border-gold/50",
                     ].join(" ")}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="font-heading text-lg font-bold text-ink">{t.types[c.id].label}</span>
-                      <span className="rounded-full bg-ink px-3 py-1 text-sm font-bold text-white">£{c.price}</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="flex items-center gap-2 font-heading text-lg font-bold text-ink">
+                        <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full transition-colors ${active ? "bg-gold text-white" : "border border-black/15 text-transparent"}`}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                        </span>
+                        {t.types[c.id].label}
+                      </span>
+                      <span className="shrink-0 rounded-full bg-ink px-3 py-1 text-sm font-bold text-white">£{c.price}</span>
                     </div>
                     <span className="mt-1 text-sm font-medium text-gold-deep">{c.duration} {t.minutes}</span>
                     <span className="mt-3 text-sm text-zinc-500">{t.types[c.id].blurb}</span>
@@ -406,7 +413,7 @@ function Field({ label, required, children }: { label: string; required?: boolea
     <label className="block">
       <span className="mb-1.5 block text-sm font-medium text-ink">
         {label}
-        {required && <span className="text-gold"> *</span>}
+        {required && <span className="text-gold-deep"> *</span>}
       </span>
       {children}
     </label>

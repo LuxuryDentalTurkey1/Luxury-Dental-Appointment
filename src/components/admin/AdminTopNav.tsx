@@ -33,7 +33,7 @@ export default function AdminTopNav({ email }: { email: string }) {
       <div className="mx-auto flex max-w-[1200px] items-center justify-between gap-4 px-5 py-3">
         <div className="flex items-center gap-6">
           <Link href="/admin" className="flex items-center">
-            <Image src="/logo-mark.png" alt="Luxury Dental Turkey" width={120} height={120} className="h-9 w-auto" />
+            <Image src="/logo-dark.png" alt="Luxury Dental Turkey" width={240} height={48} priority className="h-8 w-auto" />
           </Link>
           <nav className="hidden items-center gap-1 md:flex">
             {nav.map((n) => (

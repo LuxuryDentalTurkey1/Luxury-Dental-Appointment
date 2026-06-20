@@ -27,7 +27,7 @@ export default async function MessagesPage() {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <span className="font-medium text-ink">{m.name}</span>
-                  <a href={`mailto:${m.email}`} className="ml-2 text-sm text-gold hover:underline">{m.email}</a>
+                  <a href={`mailto:${m.email}`} className="ml-2 text-sm text-gold-deep hover:underline">{m.email}</a>
                 </div>
                 <span className="text-xs text-zinc-400">{timeAgo(m.created_at)}</span>
               </div>

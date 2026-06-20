@@ -39,7 +39,7 @@ export default async function ContactPage() {
   return (
     <main className="mx-auto max-w-[760px] px-6 pb-24 pt-[150px]">
       <div className="text-center">
-        <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gold">{t.kicker}</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gold-deep">{t.kicker}</p>
         <h1 className="mt-3 font-heading text-4xl font-extrabold tracking-tight text-ink sm:text-5xl">
           {t.title}
         </h1>

@@ -47,7 +47,7 @@ export default function Footer({ locale }: { locale: Locale }) {
                 <li key={l.href}>
                   <Link
                     href={l.href}
-                    className="text-sm text-zinc-600 transition-colors hover:text-gold"
+                    className="text-sm text-zinc-600 transition-colors hover:text-gold-deep"
                   >
                     {l.label}
                   </Link>
@@ -65,7 +65,7 @@ export default function Footer({ locale }: { locale: Locale }) {
             <p className="text-sm text-zinc-600">{t.footer.onlineWorldwide}</p>
             <Link
               href="/contact"
-              className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-gold hover:underline"
+              className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-gold-deep hover:underline"
             >
               {t.footer.getInTouch}
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -91,8 +91,8 @@ export default function Footer({ locale }: { locale: Locale }) {
         <div className="mt-8 flex flex-col items-center gap-2 text-xs text-zinc-400 sm:flex-row sm:justify-between">
           <p>© {new Date().getFullYear()} Luxury Dental Turkey. {t.footer.rights}</p>
           <div className="flex items-center gap-4">
-            <Link href="/privacy" className="transition-colors hover:text-gold">{t.footer.privacy}</Link>
-            <Link href="/terms" className="transition-colors hover:text-gold">{t.footer.terms}</Link>
+            <Link href="/privacy" className="transition-colors hover:text-gold-deep">{t.footer.privacy}</Link>
+            <Link href="/terms" className="transition-colors hover:text-gold-deep">{t.footer.terms}</Link>
           </div>
         </div>
       </div>

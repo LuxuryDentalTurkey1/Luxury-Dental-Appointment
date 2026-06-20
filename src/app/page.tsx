@@ -77,7 +77,7 @@ export default async function Home() {
             </Link>
             <Link
               href="/how-it-works"
-              className="text-base font-medium text-zinc-700 underline-offset-4 hover:text-gold hover:underline"
+              className="text-base font-medium text-zinc-700 underline-offset-4 hover:text-gold-deep hover:underline"
             >
               {t.howLink}
             </Link>
