@@ -21,6 +21,15 @@ export const CONSULTATION_META: Record<ConsultationId, ConsultationMeta> = {
   },
 };
 
+// Online opening hours for one weekday. `open`/`close` are 24h UK hours where
+// `open` is the first bookable hour and `close` is when the day ends (the last
+// appointment must finish by `close`). `closed` shuts the whole day for online.
+export interface DayHours {
+  open: number;
+  close: number;
+  closed: boolean;
+}
+
 // Admin-editable settings (stored in the `settings` table)
 export interface AppSettings {
   face_to_face_price: number;
@@ -34,7 +43,21 @@ export interface AppSettings {
   online_start_hour: number;
   online_last_hour: number;
   online_thu_fri_from_hour: number;
+  // Per-weekday online hours, indexed by JS getDay() (0=Sun ... 6=Sat).
+  online_day_hours: DayHours[];
 }
+
+// Default online hours per weekday (0=Sun ... 6=Sat). Thu/Fri are evening-only
+// (the daytime is kept for face-to-face); the others follow the day hours.
+export const DEFAULT_ONLINE_DAY_HOURS: DayHours[] = [
+  { open: 9, close: 21, closed: false }, // Sun
+  { open: 9, close: 21, closed: false }, // Mon
+  { open: 9, close: 20, closed: false }, // Tue
+  { open: 9, close: 20, closed: false }, // Wed
+  { open: 18, close: 21, closed: false }, // Thu
+  { open: 18, close: 21, closed: false }, // Fri
+  { open: 9, close: 17, closed: false }, // Sat
+];
 
 export const DEFAULT_SETTINGS: AppSettings = {
   face_to_face_price: 40,
@@ -48,6 +71,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   online_start_hour: 9,
   online_last_hour: 22,
   online_thu_fri_from_hour: 20,
+  online_day_hours: DEFAULT_ONLINE_DAY_HOURS,
 };
 
 export interface Consultation {
@@ -92,32 +116,55 @@ export const TREATMENTS = [
   "Other",
 ];
 
-// Working hours per type (UK time) come from admin settings. On Thu/Fri the
-// daytime is reserved for face-to-face, so online opens only from the evening
-// threshold (online_thu_fri_from_hour).
+function fmtSlot(mins: number): string {
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+// Working hours per type (UK time) come from admin settings.
+// FACE-TO-FACE uses a single daily window (f2f_start_hour .. f2f_last_hour, the
+// last figure being the last START hour). ONLINE has its OWN hours for EACH
+// weekday (online_day_hours, indexed 0=Sun..6=Sat): slots run from `open` and
+// the last appointment must finish by `close`; a `closed` day has no slots.
 export function slotsFor(
   id: ConsultationId,
   durationMinutes: number,
   date: Date,
   s: AppSettings
 ): string[] {
-  const start = id === "online" ? s.online_start_hour : s.f2f_start_hour;
-  const lastStart = id === "online" ? s.online_last_hour : s.f2f_last_hour;
   const step = durationMinutes > 0 ? durationMinutes : 30;
   const dow = date.getDay();
   const slots: string[] = [];
-  for (let mins = start * 60; mins <= lastStart * 60; mins += step) {
-    if (id === "online" && (dow === 4 || dow === 5) && mins < s.online_thu_fri_from_hour * 60) continue;
-    const h = Math.floor(mins / 60);
-    const m = mins % 60;
-    slots.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+
+  if (id === "online") {
+    const dh = s.online_day_hours?.[dow] ?? DEFAULT_ONLINE_DAY_HOURS[dow];
+    if (!dh || dh.closed) return [];
+    const open = dh.open * 60;
+    const close = dh.close * 60;
+    // A slot is valid only if the whole appointment fits before `close`.
+    for (let mins = open; mins + step <= close; mins += step) {
+      slots.push(fmtSlot(mins));
+    }
+    return slots;
+  }
+
+  // Face-to-face: f2f_last_hour is the last START hour (inclusive).
+  for (let mins = s.f2f_start_hour * 60; mins <= s.f2f_last_hour * 60; mins += step) {
+    slots.push(fmtSlot(mins));
   }
   return slots;
 }
 
-// Face-to-face: only the admin's enabled weekdays (Thu/Fri). Online: any day.
+// Face-to-face: only the admin's enabled weekdays (Thu/Fri). Online: any day
+// that isn't marked closed in the per-weekday online hours.
 export function weekdaysForType(id: ConsultationId, s: AppSettings): number[] {
-  if (id === "online") return [0, 1, 2, 3, 4, 5, 6];
+  if (id === "online") {
+    return [0, 1, 2, 3, 4, 5, 6].filter((d) => {
+      const dh = s.online_day_hours?.[d] ?? DEFAULT_ONLINE_DAY_HOURS[d];
+      return dh && !dh.closed && dh.open * 60 + (s.online_duration || 30) <= dh.close * 60;
+    });
+  }
   return availableWeekdaysFrom(s);
 }
 

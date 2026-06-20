@@ -3,10 +3,18 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveSettings, addBlockedDate, removeBlockedDate } from "@/app/admin/actions";
-import type { AppSettings } from "@/lib/booking";
+import type { AppSettings, DayHours } from "@/lib/booking";
 
 const numInput =
   "w-full rounded-lg border border-black/10 px-3 py-2 text-sm outline-none focus:border-gold focus:ring-2 focus:ring-gold/20";
+
+// online_day_hours is indexed by JS getDay() (0=Sun ... 6=Sat).
+const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+// Builds an "HH:00" label for an hour 0-24.
+function hourLabel(h: number) {
+  return `${String(h).padStart(2, "0")}:00`;
+}
 
 function prettyDate(iso: string) {
   const [y, m, d] = iso.split("-").map(Number);
@@ -33,6 +41,14 @@ export default function AdminSettings({
     setSavedMsg(null);
   }
 
+  function setDay(index: number, patch: Partial<DayHours>) {
+    setS((prev) => ({
+      ...prev,
+      online_day_hours: prev.online_day_hours.map((d, i) => (i === index ? { ...d, ...patch } : d)),
+    }));
+    setSavedMsg(null);
+  }
+
   async function onSave() {
     setSaving(true);
     setSavedMsg(null);
@@ -48,6 +64,11 @@ export default function AdminSettings({
       online_start_hour: Number(s.online_start_hour),
       online_last_hour: Number(s.online_last_hour),
       online_thu_fri_from_hour: Number(s.online_thu_fri_from_hour),
+      online_day_hours: s.online_day_hours.map((d) => ({
+        open: Number(d.open),
+        close: Number(d.close),
+        closed: !!d.closed,
+      })),
     });
     setSaving(false);
     setSavedMsg(res.ok ? "Saved ✓" : `Error: ${res.error}`);
@@ -121,22 +142,45 @@ export default function AdminSettings({
           </div>
 
           <div>
-            <div className="text-sm font-semibold text-ink">Working hours (UK, 24h)</div>
-            <p className="mt-1 text-xs text-zinc-400">First slot starts at the start hour; the last slot starts at the last hour.</p>
-            <div className="mt-2 space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <label className="text-xs font-medium text-zinc-500">Face-to-Face start<input type="number" min={0} max={23} value={s.f2f_start_hour} onChange={(e) => set("f2f_start_hour", Number(e.target.value))} className={`mt-1 ${numInput}`} /></label>
-                <label className="text-xs font-medium text-zinc-500">Face-to-Face last<input type="number" min={0} max={23} value={s.f2f_last_hour} onChange={(e) => set("f2f_last_hour", Number(e.target.value))} className={`mt-1 ${numInput}`} /></label>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <label className="text-xs font-medium text-zinc-500">Online start<input type="number" min={0} max={23} value={s.online_start_hour} onChange={(e) => set("online_start_hour", Number(e.target.value))} className={`mt-1 ${numInput}`} /></label>
-                <label className="text-xs font-medium text-zinc-500">Online last<input type="number" min={0} max={23} value={s.online_last_hour} onChange={(e) => set("online_last_hour", Number(e.target.value))} className={`mt-1 ${numInput}`} /></label>
-              </div>
-              <label className="block text-xs font-medium text-zinc-500">
-                On Thu/Fri, online opens from (hour)
-                <input type="number" min={0} max={23} value={s.online_thu_fri_from_hour} onChange={(e) => set("online_thu_fri_from_hour", Number(e.target.value))} className={`mt-1 ${numInput}`} />
-                <span className="mt-1 block text-[11px] text-zinc-400">Thu/Fri daytime is kept for face-to-face, so online starts in the evening from this hour.</span>
-              </label>
+            <div className="text-sm font-semibold text-ink">Face-to-Face hours (UK, 24h)</div>
+            <p className="mt-1 text-xs text-zinc-400">First slot starts at the start hour; the last slot starts at the last hour. Face-to-face only runs on the enabled days above.</p>
+            <div className="mt-2 grid grid-cols-2 gap-3">
+              <label className="text-xs font-medium text-zinc-500">Start hour<input type="number" min={0} max={23} value={s.f2f_start_hour} onChange={(e) => set("f2f_start_hour", Number(e.target.value))} className={`mt-1 ${numInput}`} /></label>
+              <label className="text-xs font-medium text-zinc-500">Last hour<input type="number" min={0} max={23} value={s.f2f_last_hour} onChange={(e) => set("f2f_last_hour", Number(e.target.value))} className={`mt-1 ${numInput}`} /></label>
+            </div>
+          </div>
+
+          <div>
+            <div className="text-sm font-semibold text-ink">Online hours per day (UK, 24h)</div>
+            <p className="mt-1 text-xs text-zinc-400">Set each day&apos;s online window. &quot;Open&quot; is the first hour; the last appointment finishes by &quot;Close&quot;. Tick &quot;Closed&quot; to switch a day off.</p>
+            <div className="mt-3 space-y-2">
+              {s.online_day_hours.map((d, i) => (
+                <div key={i} className="flex flex-wrap items-center gap-2 rounded-lg border border-black/10 px-3 py-2">
+                  <span className="w-20 text-xs font-semibold text-ink">{DAY_NAMES[i]}</span>
+                  <label className="flex items-center gap-1.5 text-xs text-zinc-500">
+                    <input type="checkbox" checked={d.closed} onChange={(e) => setDay(i, { closed: e.target.checked })} className="accent-[#c5a253]" />
+                    Closed
+                  </label>
+                  <div className={`flex items-center gap-2 ${d.closed ? "pointer-events-none opacity-40" : ""}`}>
+                    <label className="flex items-center gap-1 text-xs text-zinc-500">
+                      Open
+                      <select value={d.open} onChange={(e) => setDay(i, { open: Number(e.target.value) })} className="rounded-lg border border-black/10 px-2 py-1.5 text-sm outline-none focus:border-gold">
+                        {Array.from({ length: 24 }, (_, h) => (
+                          <option key={h} value={h}>{hourLabel(h)}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="flex items-center gap-1 text-xs text-zinc-500">
+                      Close
+                      <select value={d.close} onChange={(e) => setDay(i, { close: Number(e.target.value) })} className="rounded-lg border border-black/10 px-2 py-1.5 text-sm outline-none focus:border-gold">
+                        {Array.from({ length: 25 }, (_, h) => (
+                          <option key={h} value={h}>{hourLabel(h)}</option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>

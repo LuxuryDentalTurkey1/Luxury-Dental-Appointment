@@ -54,11 +54,8 @@ export default async function AdminDashboard() {
       .select("id", { count: "exact", head: true })
       .gte("appointment_date", todayISO)
       .eq("status", "upcoming"),
-    supabase
-      .from("bookings")
-      .select("amount_paid")
-      .eq("payment_status", "paid")
-      .gte("paid_at", nowUk.startOf("month").toISO() ?? ""),
+    // All paid bookings; revenue windows are summed in JS below.
+    supabase.from("bookings").select("amount_paid,paid_at").eq("payment_status", "paid"),
     supabase.from("bookings").select("*").order("created_at", { ascending: false }).limit(8),
   ]);
 
@@ -66,8 +63,23 @@ export default async function AdminDashboard() {
   const todayCount = todayRes.count ?? 0;
   const monthCount = monthRes.count ?? 0;
   const upcoming = upcomingRes.count ?? 0;
-  const revenue = (paidRes.data ?? []).reduce((s, r) => s + (Number(r.amount_paid) || 0), 0);
   const recent = (recentRes.data ?? []) as BookingRow[];
+
+  // Revenue windows (by paid_at instant, so timezone never skews the boundary).
+  const paidRows = (paidRes.data ?? []) as { amount_paid: number | null; paid_at: string | null }[];
+  const monthStartMs = nowUk.startOf("month").toMillis();
+  const sixMonthsMs = nowUk.minus({ months: 6 }).toMillis();
+  const yearStartMs = nowUk.startOf("year").toMillis();
+  const sumSince = (sinceMs: number) =>
+    paidRows.reduce((sum, r) => {
+      const t = r.paid_at ? new Date(r.paid_at).getTime() : NaN;
+      return Number.isFinite(t) && t >= sinceMs ? sum + (Number(r.amount_paid) || 0) : sum;
+    }, 0);
+  const revMonth = sumSince(monthStartMs);
+  const rev6mo = sumSince(sixMonthsMs);
+  const revYear = sumSince(yearStartMs);
+  const revAll = paidRows.reduce((sum, r) => sum + (Number(r.amount_paid) || 0), 0);
+  const money = (n: number) => `£${n.toLocaleString("en-GB", { maximumFractionDigits: 0 })}`;
 
   return (
     <div>
@@ -78,7 +90,18 @@ export default async function AdminDashboard() {
         <StatCard label="Total bookings" value={String(total)} />
         <StatCard label="Today" value={String(todayCount)} sub="appointments today" />
         <StatCard label="This month" value={String(monthCount)} sub="appointments" />
-        <StatCard label="Revenue this month" value={`£${revenue.toFixed(0)}`} sub={`${upcoming} upcoming`} />
+        <StatCard label="Upcoming" value={String(upcoming)} sub="not yet completed" />
+      </div>
+
+      <div className="mt-8">
+        <h2 className="font-heading text-lg font-bold text-ink">Revenue</h2>
+        <p className="mt-1 text-sm text-zinc-500">Paid consultations only.</p>
+        <div className="mt-3 grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <StatCard label="This month" value={money(revMonth)} />
+          <StatCard label="Last 6 months" value={money(rev6mo)} />
+          <StatCard label="This year" value={money(revYear)} />
+          <StatCard label="All time" value={money(revAll)} />
+        </div>
       </div>
 
       <div className="mt-8 rounded-2xl border border-black/10 bg-white">

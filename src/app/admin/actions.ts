@@ -36,6 +36,7 @@ export interface SettingsInput {
   online_start_hour: number;
   online_last_hour: number;
   online_thu_fri_from_hour: number;
+  online_day_hours: { open: number; close: number; closed: boolean }[];
 }
 
 export async function saveSettings(s: SettingsInput) {
