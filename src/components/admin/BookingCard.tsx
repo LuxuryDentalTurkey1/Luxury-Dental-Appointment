@@ -73,10 +73,22 @@ export default function BookingCard({ booking }: { booking: BookingRow }) {
         <div className="flex flex-col items-end gap-2">
           <span
             className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-              b.payment_status === "paid" ? "bg-green-100 text-green-700" : "bg-zinc-100 text-zinc-500"
+              b.payment_status === "paid"
+                ? "bg-green-100 text-green-700"
+                : b.payment_status === "free"
+                  ? "bg-indigo-100 text-indigo-700"
+                  : b.payment_status === "refunded"
+                    ? "bg-amber-100 text-amber-700"
+                    : "bg-zinc-100 text-zinc-500"
             }`}
           >
-            {b.payment_status === "paid" ? `Paid £${b.amount_paid ?? b.price_gbp}` : b.payment_status}
+            {b.payment_status === "paid"
+              ? `Paid £${b.amount_paid ?? b.price_gbp}`
+              : b.payment_status === "free"
+                ? "Free"
+                : b.payment_status === "refunded"
+                  ? "Refunded"
+                  : "Unpaid"}
           </span>
           <select
             value={status}

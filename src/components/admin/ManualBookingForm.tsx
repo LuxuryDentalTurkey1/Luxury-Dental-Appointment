@@ -110,7 +110,7 @@ export default function ManualBookingForm({
             <label className="text-xs font-medium text-zinc-500">Duration (min)<input type="number" min={5} step={5} value={duration} onChange={(e) => setDuration(Number(e.target.value))} className={`mt-1 ${fieldCls}`} /></label>
           </div>
 
-          <label className="block text-xs font-medium text-zinc-500">Payment<select value={paymentStatus} onChange={(e) => setPaymentStatus(e.target.value)} className={`mt-1 ${fieldCls}`}><option value="unpaid">Not paid yet</option><option value="paid">Paid (cash / manual)</option></select></label>
+          <label className="block text-xs font-medium text-zinc-500">Payment<select value={paymentStatus} onChange={(e) => setPaymentStatus(e.target.value)} className={`mt-1 ${fieldCls}`}><option value="unpaid">Not paid yet</option><option value="paid">Paid (cash / manual)</option><option value="free">No payment (free / complimentary)</option></select></label>
 
           <label className="block text-xs font-medium text-zinc-500">Notes<textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className={`mt-1 resize-none ${fieldCls}`} placeholder="Optional" /></label>
 

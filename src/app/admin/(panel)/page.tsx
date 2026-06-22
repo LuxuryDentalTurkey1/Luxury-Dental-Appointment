@@ -22,15 +22,17 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub?: s
   );
 }
 
+const PAY_BADGE: Record<string, { label: string; cls: string }> = {
+  paid: { label: "Paid", cls: "bg-green-100 text-green-700" },
+  free: { label: "Free", cls: "bg-indigo-100 text-indigo-700" },
+  refunded: { label: "Refunded", cls: "bg-amber-100 text-amber-700" },
+};
+
 function PayBadge({ status }: { status: string }) {
-  const paid = status === "paid";
+  const b = PAY_BADGE[status] ?? { label: "Unpaid", cls: "bg-zinc-100 text-zinc-500" };
   return (
-    <span
-      className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${
-        paid ? "bg-green-100 text-green-700" : "bg-zinc-100 text-zinc-500"
-      }`}
-    >
-      {paid ? "Paid" : status}
+    <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${b.cls}`}>
+      {b.label}
     </span>
   );
 }

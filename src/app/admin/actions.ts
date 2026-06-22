@@ -131,6 +131,7 @@ export interface ManualBookingInput {
 export async function createManualBooking(p: ManualBookingInput, notify = false) {
   const supabase = await createClient();
   const paid = p.payment_status === "paid";
+  const free = p.payment_status === "free";
   const { data: inserted, error } = await supabase.from("bookings").insert({
     consultation_type: p.consultation_type,
     appointment_date: p.appointment_date,
@@ -145,7 +146,9 @@ export async function createManualBooking(p: ManualBookingInput, notify = false)
     notes: p.notes,
     status: "upcoming",
     payment_status: p.payment_status,
-    amount_paid: paid ? p.price_gbp : null,
+    // 'free' is a complimentary appointment: recorded as £0 so it never counts
+    // as revenue. 'unpaid' leaves amount_paid null (still owed).
+    amount_paid: paid ? p.price_gbp : free ? 0 : null,
     paid_at: paid ? new Date().toISOString() : null,
     transaction_id: paid ? "manual" : null,
     staff_notes: "Added manually by staff",
@@ -289,4 +292,34 @@ export async function resizeBooking(id: string, duration_minutes: number) {
   revalidatePath("/admin/calendar");
   revalidatePath("/admin/bookings");
   return { ok: true };
+}
+
+// Lets staff change a booking's payment status by hand.
+//  paid   → counts as revenue (amount = the booking price)
+//  unpaid → still owed, amount cleared (not revenue)
+//  free   → complimentary, recorded as £0 (never revenue)
+// Use this to mark a manually-added appointment as free so it drops out of the
+// revenue totals.
+export async function setPaymentStatus(id: string, payment_status: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Not authenticated" };
+
+  const { data: b } = await supabase.from("bookings").select("price_gbp").eq("id", id).single();
+  const price = Number(b?.price_gbp ?? 0);
+  const patch =
+    payment_status === "paid"
+      ? { payment_status, amount_paid: price, paid_at: new Date().toISOString() }
+      : payment_status === "free"
+        ? { payment_status, amount_paid: 0, paid_at: null }
+        : { payment_status: "unpaid", amount_paid: null, paid_at: null };
+
+  const { error } = await supabase.from("bookings").update(patch).eq("id", id);
+  if (error) return { ok: false as const, error: error.message };
+  revalidatePath("/admin/calendar");
+  revalidatePath("/admin/bookings");
+  revalidatePath("/admin");
+  return { ok: true as const };
 }

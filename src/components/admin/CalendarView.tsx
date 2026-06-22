@@ -15,6 +15,7 @@ import {
   deleteBooking,
   autoCompletePast,
   refundBooking,
+  setPaymentStatus,
 } from "@/app/admin/actions";
 import ManualBookingForm from "./ManualBookingForm";
 import ConfirmHost, { confirmDialog } from "./Confirm";
@@ -108,6 +109,16 @@ function bookingColor(status: string, paid: boolean) {
     case "cancelled": return "border-red-200 bg-red-50 text-red-800 opacity-75";
     case "no_show": return "border-amber-300 bg-amber-50 text-amber-900";
     default: return paid ? "border-blue-300 bg-blue-50 text-blue-900" : "border-zinc-300 bg-zinc-50 text-zinc-700";
+  }
+}
+
+// Label + pill colour for a booking's payment status.
+function payInfo(s: string): { label: string; cls: string } {
+  switch (s) {
+    case "paid": return { label: "Paid", cls: "bg-green-100 text-green-700" };
+    case "free": return { label: "Free", cls: "bg-indigo-100 text-indigo-700" };
+    case "refunded": return { label: "Refunded", cls: "bg-amber-100 text-amber-700" };
+    default: return { label: "Unpaid", cls: "bg-zinc-100 text-zinc-500" };
   }
 }
 
@@ -555,6 +566,7 @@ function DetailDrawer({
 }) {
   const b = booking;
   const [status, setStatus] = useState(b.status);
+  const [payment, setPayment] = useState(b.payment_status);
   const [rDate, setRDate] = useState(b.appointment_date);
   const [rTime, setRTime] = useState(b.appointment_time_uk);
   const [notes, setNotes] = useState(b.staff_notes ?? "");
@@ -568,6 +580,14 @@ function DetailDrawer({
     await updateBookingStatus(b.id, v);
     setBusy(false);
     setMsg("Status updated ✓");
+    await onChanged();
+  }
+  async function changePayment(v: string) {
+    setPayment(v);
+    setBusy(true);
+    const res = await setPaymentStatus(b.id, v);
+    setBusy(false);
+    setMsg(res.ok ? "Payment updated ✓" : `Error: ${res.error}`);
     await onChanged();
   }
   async function doReschedule() {
@@ -645,10 +665,20 @@ function DetailDrawer({
           <div className="rounded-xl border border-black/10 p-3 text-sm">
             <div className="font-medium text-ink">{b.consultation_type === "online" ? "Online Video Consultation" : "Face-to-Face Consultation"}</div>
             <div className="text-zinc-500">{b.duration_minutes} min{b.treatment ? ` · ${b.treatment}` : ""}</div>
-            <div className="mt-2">
-              <span className="font-semibold text-ink">£{b.amount_paid ?? b.price_gbp}</span>
-              <span className={`ml-2 rounded-full px-2 py-0.5 text-xs font-medium ${b.payment_status === "paid" ? "bg-green-100 text-green-700" : "bg-zinc-100 text-zinc-500"}`}>{b.payment_status}</span>
+            <div className="mt-2 flex items-center gap-2">
+              <span className="font-semibold text-ink">£{payment === "free" ? 0 : (b.amount_paid ?? b.price_gbp)}</span>
+              <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${payInfo(payment).cls}`}>{payInfo(payment).label}</span>
             </div>
+            {payment !== "refunded" && (
+              <label className="mt-3 block text-xs font-medium text-zinc-500">
+                Payment
+                <select value={payment === "paid" || payment === "free" ? payment : "unpaid"} onChange={(e) => changePayment(e.target.value)} disabled={busy} className={`mt-1 w-full ${fieldCls}`}>
+                  <option value="unpaid">Unpaid (owed)</option>
+                  <option value="paid">Paid</option>
+                  <option value="free">No payment (free)</option>
+                </select>
+              </label>
+            )}
           </div>
           <div>
             <label className="text-xs font-medium text-zinc-400">Status</label>
