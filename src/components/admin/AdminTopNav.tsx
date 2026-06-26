@@ -9,6 +9,7 @@ import NotificationsBell from "./NotificationsBell";
 const nav = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/calendar", label: "Calendar" },
+  { href: "/admin/patients", label: "Patients" },
   { href: "/admin/messages", label: "Messages" },
   { href: "/admin/settings", label: "Settings" },
 ];
