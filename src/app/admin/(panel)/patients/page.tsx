@@ -40,7 +40,9 @@ export default async function PatientsPage() {
       if (!existing.treatment && b.treatment) existing.treatment = b.treatment.trim();
     }
   }
-  const patients = [...map.values()];
+  const patients = [...map.values()].sort((a, b) =>
+    a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
+  );
 
   return (
     <div>
