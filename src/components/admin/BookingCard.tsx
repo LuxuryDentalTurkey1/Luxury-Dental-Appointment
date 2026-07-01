@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { updateBookingStatus, updateStaffNotes } from "@/app/admin/actions";
+import { useRouter } from "next/navigation";
+import { updateBookingStatus, updateStaffNotes, deleteBooking } from "@/app/admin/actions";
 import type { BookingRow } from "@/lib/types";
 
 const DAYS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -35,10 +36,21 @@ function statusClasses(s: string) {
 
 export default function BookingCard({ booking }: { booking: BookingRow }) {
   const b = booking;
+  const router = useRouter();
   const [status, setStatus] = useState(b.status);
   const [notes, setNotes] = useState(b.staff_notes ?? "");
   const [savedNotes, setSavedNotes] = useState(b.staff_notes ?? "");
   const [saving, setSaving] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function onDelete() {
+    setDeleting(true);
+    const res = await deleteBooking(b.id);
+    setDeleting(false);
+    if (res.ok) router.refresh();
+    else setConfirmingDelete(false);
+  }
 
   async function onStatus(v: string) {
     const prev = status;
@@ -122,6 +134,24 @@ export default function BookingCard({ booking }: { booking: BookingRow }) {
             className="mt-2 rounded-lg bg-ink px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
           >
             {saving ? "Saving…" : "Save notes"}
+          </button>
+        )}
+      </div>
+
+      <div className="mt-3 flex justify-end border-t border-black/5 pt-3">
+        {confirmingDelete ? (
+          <div className="flex flex-wrap items-center justify-end gap-2 text-xs">
+            <span className="text-zinc-600">Delete this appointment permanently?</span>
+            <button onClick={onDelete} disabled={deleting} className="rounded-lg bg-red-600 px-3 py-1.5 font-semibold text-white hover:bg-red-700 disabled:opacity-50">
+              {deleting ? "Deleting…" : "Yes, delete"}
+            </button>
+            <button onClick={() => setConfirmingDelete(false)} disabled={deleting} className="rounded-lg border border-black/10 px-3 py-1.5 font-semibold text-zinc-600 hover:bg-black/[0.04]">
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button onClick={() => setConfirmingDelete(true)} className="text-xs font-semibold text-red-500 hover:underline">
+            Delete appointment
           </button>
         )}
       </div>
