@@ -8,9 +8,7 @@ export default async function BookingsPage() {
   const { data } = await supabase
     .from("bookings")
     .select("*")
-    .order("appointment_date", { ascending: true })
-    .order("appointment_time_uk", { ascending: true })
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: false });
 
   const bookings = (data ?? []) as BookingRow[];
 
